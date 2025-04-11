@@ -88,7 +88,7 @@ public fun is_admin<OTW: drop>(acl: &ACL<OTW>, admin: address): bool {
 }
 
 public fun sign_in<OTW: drop>(acl: &ACL<OTW>, admin: &Admin<OTW>): AdminWitness<OTW> {
-    assert!(is_admin(acl, admin.id.to_address()), errors::invalid_admin!());
+    assert!(acl.is_admin( admin.id.to_address()), errors::invalid_admin!());
 
     AdminWitness()
 }
@@ -96,7 +96,9 @@ public fun sign_in<OTW: drop>(acl: &ACL<OTW>, admin: &Admin<OTW>): AdminWitness<
 public fun destroy_admin<OTW: drop>(acl: &mut ACL<OTW>, admin: Admin<OTW>) {
     let Admin { id } = admin;
 
-    if (acl.admins.contains(&id.to_address())) acl.admins.remove(&id.to_address());
+    let admin_address = id.to_address();
+
+    if (acl.admins.contains(&admin_address)) acl.admins.remove(&admin_address);
 
     id.delete();
 }
