@@ -9,11 +9,9 @@
 */
 module access_control::access_control;
 
-use access_control::events;
-use access_control::errors;
+use access_control::{errors, events};
 use std::u64;
-use sui::vec_set::{Self, VecSet};
-use sui::types;
+use sui::{types, vec_set::{Self, VecSet}};
 
 // === Imports ===
 
@@ -68,7 +66,6 @@ public fun new_admin<OTW: drop>(
     _: &SuperAdmin<OTW>,
     ctx: &mut TxContext,
 ): Admin<OTW> {
-
     let admin = Admin {
         id: object::new(ctx),
     };
@@ -112,7 +109,10 @@ public fun start_transfer<OTW: drop>(
     ctx: &mut TxContext,
 ) {
     //@dev Destroy it instead for the Sui rebate
-    assert!(new_super_admin != @0x0 && new_super_admin != ctx.sender(), errors::invalid_super_admin!());
+    assert!(
+        new_super_admin != @0x0 && new_super_admin != ctx.sender(),
+        errors::invalid_super_admin!(),
+    );
 
     super_admin.start = ctx.epoch();
     super_admin.new_admin = new_super_admin;

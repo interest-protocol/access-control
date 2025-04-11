@@ -6,15 +6,14 @@
 * @notice This module provides events for the access control contract.
 */
 module access_control::events;
-// === Imports === 
 
-use sui::event::emit; 
+use sui::event::emit;
 
-// === Structs === 
+// === Structs ===
 
 public struct StartSuperAdminTransfer<phantom T> has copy, drop {
     new_admin: address,
-    start: u64
+    start: u64,
 }
 
 public struct FinishSuperAdminTransfer<phantom T> has copy, drop {
@@ -31,35 +30,26 @@ public struct RevokeAdmin<phantom T> has copy, drop {
 
 // === Package Functions ===
 
-public(package) fun start_super_admin_transfer<T>(
-    new_admin: address,
-    start: u64,
-) {
+public(package) fun start_super_admin_transfer<T>(new_admin: address, start: u64) {
     emit(StartSuperAdminTransfer<T> {
         new_admin,
         start,
-    }); 
+    });
 }
 
-public(package) fun finish_super_admin_transfer<T>(
-    new_admin: address,
-) {
+public(package) fun finish_super_admin_transfer<T>(new_admin: address) {
     emit(FinishSuperAdminTransfer<T> {
         new_admin,
     });
 }
 
-public(package) fun new_admin<T>(
-    admin: address,
-) {
+public(package) fun new_admin<T>(admin: address) {
     emit(NewAdmin<T> {
         admin,
     });
 }
 
-public(package) fun revoke_admin<T>(
-    admin: address,
-) {
+public(package) fun revoke_admin<T>(admin: address) {
     emit(RevokeAdmin<T> {
         admin,
     });
