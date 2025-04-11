@@ -41,16 +41,16 @@ public struct ACL<phantom T> has key, store {
 
 // === Public Mutative Functions ===
 
-public fun new<OTW: drop>(otw: OTW, super_admin_recipient: address, ctx: &mut TxContext): ACL<OTW> {
+public fun new<T: drop>(otw: T, super_admin_recipient: address, ctx: &mut TxContext): ACL<T> {
     assert!(types::is_one_time_witness(&otw), errors::invalid_otw!());
     assert!(super_admin_recipient != @0x0, errors::invalid_super_admin!());
 
-    let acl = ACL<OTW> {
+    let acl = ACL<T> {
         id: object::new(ctx),
         admins: vec_set::empty(),
     };
 
-    let super_admin = SuperAdmin<OTW> {
+    let super_admin = SuperAdmin<T> {
         id: object::new(ctx),
         new_admin: @0x0,
         start: u64::max_value!(),
@@ -61,39 +61,39 @@ public fun new<OTW: drop>(otw: OTW, super_admin_recipient: address, ctx: &mut Tx
     acl
 }
 
-public fun new_admin<OTW: drop>(
-    acl: &mut ACL<OTW>,
-    _: &SuperAdmin<OTW>,
+public fun new_admin<T: drop>(
+    acl: &mut ACL<T>,
+    _: &SuperAdmin<T>,
     ctx: &mut TxContext,
-): Admin<OTW> {
+): Admin<T> {
     let admin = Admin {
         id: object::new(ctx),
     };
 
     acl.admins.insert(admin.id.to_address());
 
-    events::new_admin<OTW>(admin.id.to_address());
+    events::new_admin<T>(admin.id.to_address());
 
     admin
 }
 
-public fun revoke<OTW: drop>(acl: &mut ACL<OTW>, _: &SuperAdmin<OTW>, to_revoke: address) {
+public fun revoke<T: drop>(acl: &mut ACL<T>, _: &SuperAdmin<T>, to_revoke: address) {
     acl.admins.remove(&to_revoke);
 
-    events::revoke_admin<OTW>(to_revoke);
+    events::revoke_admin<T>(to_revoke);
 }
 
-public fun is_admin<OTW: drop>(acl: &ACL<OTW>, admin: address): bool {
+public fun is_admin<T: drop>(acl: &ACL<T>, admin: address): bool {
     acl.admins.contains(&admin)
 }
 
-public fun sign_in<OTW: drop>(acl: &ACL<OTW>, admin: &Admin<OTW>): AdminWitness<OTW> {
+public fun sign_in<T: drop>(acl: &ACL<T>, admin: &Admin<T>): AdminWitness<T> {
     assert!(acl.is_admin( admin.id.to_address()), errors::invalid_admin!());
 
     AdminWitness()
 }
 
-public fun destroy_admin<OTW: drop>(acl: &mut ACL<OTW>, admin: Admin<OTW>) {
+public fun destroy_admin<T: drop>(acl: &mut ACL<T>, admin: Admin<T>) {
     let Admin { id } = admin;
 
     let admin_address = id.to_address();
@@ -105,8 +105,8 @@ public fun destroy_admin<OTW: drop>(acl: &mut ACL<OTW>, admin: Admin<OTW>) {
 
 // === Transfer Super Admin ===
 
-public fun start_transfer<OTW: drop>(
-    super_admin: &mut SuperAdmin<OTW>,
+public fun start_transfer<T: drop>(
+    super_admin: &mut SuperAdmin<T>,
     new_super_admin: address,
     ctx: &mut TxContext,
 ) {
@@ -119,10 +119,10 @@ public fun start_transfer<OTW: drop>(
     super_admin.start = ctx.epoch();
     super_admin.new_admin = new_super_admin;
 
-    events::start_super_admin_transfer<OTW>(new_super_admin, super_admin.start);
+    events::start_super_admin_transfer<T>(new_super_admin, super_admin.start);
 }
 
-public fun finish_transfer<OTW: drop>(mut super_admin: SuperAdmin<OTW>, ctx: &mut TxContext) {
+public fun finish_transfer<T: drop>(mut super_admin: SuperAdmin<T>, ctx: &mut TxContext) {
     assert!(ctx.epoch() > super_admin.start + THREE_EPOCHS, errors::invalid_epoch!());
 
     let new_admin = super_admin.new_admin;
@@ -131,11 +131,11 @@ public fun finish_transfer<OTW: drop>(mut super_admin: SuperAdmin<OTW>, ctx: &mu
 
     transfer::transfer(super_admin, new_admin);
 
-    events::finish_super_admin_transfer<OTW>(new_admin);
+    events::finish_super_admin_transfer<T>(new_admin);
 }
 
 // @dev This is irreversible, the contract does not offer a way to create a new super admin
-public fun destroy_super_admin<OTW: drop>(super_admin: SuperAdmin<OTW>) {
+public fun destroy_super_admin<T: drop>(super_admin: SuperAdmin<T>) {
     let SuperAdmin { id, .. } = super_admin;
     id.delete();
 }
@@ -147,27 +147,27 @@ public use fun destroy_super_admin as SuperAdmin.destroy;
 // === Test Functions ===
 
 #[test_only]
-public fun sign_in_for_testing<OTW: drop>(): AdminWitness<OTW> {
+public fun sign_in_for_testing<T: drop>(): AdminWitness<T> {
     AdminWitness()
 }
 
 #[test_only]
-public fun admins<OTW: drop>(acl: &ACL<OTW>): &VecSet<address> {
+public fun admins<T: drop>(acl: &ACL<T>): &VecSet<address> {
     &acl.admins
 }
 
 #[test_only]
-public fun super_admin_new_admin<OTW: drop>(super_admin: &SuperAdmin<OTW>): address {
+public fun super_admin_new_admin<T: drop>(super_admin: &SuperAdmin<T>): address {
     super_admin.new_admin
 }
 
 #[test_only]
-public fun super_admin_start<OTW: drop>(super_admin: &SuperAdmin<OTW>): u64 {
+public fun super_admin_start<T: drop>(super_admin: &SuperAdmin<T>): u64 {
     super_admin.start
 }
 
 #[test_only]
-public fun admin_address<OTW: drop>(admin: &Admin<OTW>): address {
+public fun admin_address<T: drop>(admin: &Admin<T>): address {
     admin.id.to_address()
 }
 
