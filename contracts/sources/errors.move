@@ -1,10 +1,8 @@
 // Copyright (c) DEFI, LDA
 // SPDX-License-Identifier: Apache-2.0
 
-/*
-* @author Jose Cerqueira
-* @notice This module provides errors for the access control contract.
-*/
+/// This module provides errors for the access control contract.
+/// Author: Jose Cerqueira
 module access_control::errors;
 
 // === Errors ===

@@ -1,23 +1,20 @@
 // Copyright (c) DEFI, LDA
 // SPDX-License-Identifier: Apache-2.0
 
-/*
-* @author Jose Cerqueira
-* @notice This module provides a safe access control mechanism for the contract. 
-* The SuperAdmin object has the ability to add and remove admins from the contract. 
-* Admins can create a Witness to execute authorized transactions. 
-*/
+/// This module provides a safe access control mechanism for the contract.
+/// The SuperAdmin object has the ability to add and remove admins from the contract.
+/// Admins can create a Witness to execute authorized transactions.
+/// Author: Jose Cerqueira
 module access_control::access_control;
 
-use access_control::{errors, events};
-use std::u64;
+use access_control::events;
 use sui::{types, vec_set::{Self, VecSet}};
 
 // === Imports ===
 
 // === Constants ===
 
-// @dev Each epoch is roughly 1 day
+/// Each epoch is roughly 1 day
 const THREE_EPOCHS: u64 = 3;
 
 // === Structs ===
@@ -42,8 +39,8 @@ public struct ACL<phantom T> has key, store {
 // === Public Mutative Functions ===
 
 public fun new<T: drop>(otw: T, super_admin_recipient: address, ctx: &mut TxContext): ACL<T> {
-    assert!(types::is_one_time_witness(&otw), errors::invalid_otw!());
-    assert!(super_admin_recipient != @0x0, errors::invalid_super_admin!());
+    assert!(types::is_one_time_witness(&otw), access_control::errors::invalid_otw!());
+    assert!(super_admin_recipient != @0x0, access_control::errors::invalid_super_admin!());
 
     let acl = ACL<T> {
         id: object::new(ctx),
@@ -53,7 +50,7 @@ public fun new<T: drop>(otw: T, super_admin_recipient: address, ctx: &mut TxCont
     let super_admin = SuperAdmin<T> {
         id: object::new(ctx),
         new_admin: @0x0,
-        start: u64::max_value!(),
+        start: std::u64::max_value!(),
     };
 
     transfer::transfer(super_admin, super_admin_recipient);
@@ -61,11 +58,7 @@ public fun new<T: drop>(otw: T, super_admin_recipient: address, ctx: &mut TxCont
     acl
 }
 
-public fun new_admin<T: drop>(
-    acl: &mut ACL<T>,
-    _: &SuperAdmin<T>,
-    ctx: &mut TxContext,
-): Admin<T> {
+public fun new_admin<T: drop>(acl: &mut ACL<T>, _: &SuperAdmin<T>, ctx: &mut TxContext): Admin<T> {
     let admin = Admin {
         id: object::new(ctx),
     };
@@ -88,7 +81,7 @@ public fun is_admin<T: drop>(acl: &ACL<T>, admin: address): bool {
 }
 
 public fun sign_in<T: drop>(acl: &ACL<T>, admin: &Admin<T>): AdminWitness<T> {
-    assert!(acl.is_admin( admin.id.to_address()), errors::invalid_admin!());
+    assert!(acl.is_admin(admin.id.to_address()), access_control::errors::invalid_admin!());
 
     AdminWitness()
 }
@@ -105,15 +98,15 @@ public fun destroy_admin<T: drop>(acl: &mut ACL<T>, admin: Admin<T>) {
 
 // === Transfer Super Admin ===
 
+/// It will abort if the new super admin is the same as the current one or the 0x0 address
 public fun start_transfer<T: drop>(
     super_admin: &mut SuperAdmin<T>,
     new_super_admin: address,
     ctx: &mut TxContext,
 ) {
-    //@dev Destroy it instead for the Sui rebate
     assert!(
         new_super_admin != @0x0 && new_super_admin != ctx.sender(),
-        errors::invalid_super_admin!(),
+        access_control::errors::invalid_super_admin!(),
     );
 
     super_admin.start = ctx.epoch();
@@ -123,18 +116,21 @@ public fun start_transfer<T: drop>(
 }
 
 public fun finish_transfer<T: drop>(mut super_admin: SuperAdmin<T>, ctx: &mut TxContext) {
-    assert!(ctx.epoch() > super_admin.start + THREE_EPOCHS, errors::invalid_epoch!());
+    assert!(
+        ctx.epoch() > super_admin.start + THREE_EPOCHS,
+        access_control::errors::invalid_epoch!(),
+    );
 
     let new_admin = super_admin.new_admin;
     super_admin.new_admin = @0x0;
-    super_admin.start = u64::max_value!();
+    super_admin.start = std::u64::max_value!();
 
     transfer::transfer(super_admin, new_admin);
 
     events::finish_super_admin_transfer<T>(new_admin);
 }
 
-// @dev This is irreversible, the contract does not offer a way to create a new super admin
+/// This is irreversible, the contract does not offer a way to create a new super admin
 public fun destroy_super_admin<T: drop>(super_admin: SuperAdmin<T>) {
     let SuperAdmin { id, .. } = super_admin;
     id.delete();
@@ -170,9 +166,3 @@ public fun super_admin_start<T: drop>(super_admin: &SuperAdmin<T>): u64 {
 public fun admin_address<T: drop>(admin: &Admin<T>): address {
     admin.id.to_address()
 }
-
-#[test_only]
-public use fun admin_address as Admin.address;
-
-#[test_only]
-public use fun super_admin_new_admin as SuperAdmin.new_admin;
